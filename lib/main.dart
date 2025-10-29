@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:operat_flow/theme.dart';
-import 'package:operat_flow/dashboard_screen.dart';
+import 'package:operat_flow/auth/login_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'OperatFlow',
       theme: appTheme,
       debugShowCheckedModeBanner: false,
-      home: const DashboardScreen(),
+      home: const LoginScreen(),
     );
   }
 }
