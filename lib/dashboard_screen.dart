@@ -17,7 +17,7 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: const DashboardAppBar(),
       body: ResizableWidget(
-        percentages: const [0.25, 0.35, 0.4],
+        percentages: const [0.15, 0.15, 0.7],
         isDisabledSmartHide: true,
         separatorSize: 4.0,
         separatorColor: borderColor,

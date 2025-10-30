@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:operat_flow/database/database.dart';
 import 'package:operat_flow/providers/dashboard_providers.dart';
 import 'package:operat_flow/theme.dart';
+import 'package:operat_flow/widgets/projects/new_project_dialog.dart';
 
 class ProjectListColumn extends ConsumerWidget {
   const ProjectListColumn({super.key});
@@ -18,6 +19,7 @@ class ProjectListColumn extends ConsumerWidget {
 
     return Container(
       color: colorScheme.surface,
+      constraints: const BoxConstraints(minWidth: 200),
       child: Column(
         children: [
           Padding(
@@ -25,8 +27,11 @@ class ProjectListColumn extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text('Projekty', style: textTheme.titleLarge),
                     ElevatedButton.icon(
@@ -37,17 +42,11 @@ class ProjectListColumn extends ConsumerWidget {
                         textTheme.labelLarge?.copyWith(fontSize: 13),
                         minimumSize: Size.zero,
                       ),
-                      onPressed: () async {
-                        // TODO: Otworzyć Kreator Nowego Projektu
-                        final db = ref.read(databaseProvider);
-                        final newProject = ProjectsCompanion.insert(
-                          kerg:
-                          'KERG-${DateTime.now().millisecondsSinceEpoch}',
-                          workType: 'Podział',
-                          clientName:
-                          'Testowy Klient ${DateTime.now().second}',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const NewProjectDialog(),
                         );
-                        await db.insertProject(newProject);
                       },
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Nowy'),
@@ -157,32 +156,32 @@ class ProjectListColumn extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                spacing: 8.0,
+                                runSpacing: 4.0,
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                            Icons.folder_open_outlined,
-                                            size: 16,
-                                            color: infoColor),
-                                        const SizedBox(width: 8),
-                                        Flexible(
-                                          child: Text(
-                                            project.kerg,
-                                            style: textTheme.bodyMedium
-                                                ?.copyWith(
-                                                fontWeight:
-                                                FontWeight.w600),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                          Icons.folder_open_outlined,
+                                          size: 16,
+                                          color: infoColor),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          project.kerg,
+                                          style: textTheme.bodyMedium
+                                              ?.copyWith(
+                                              fontWeight:
+                                              FontWeight.w600),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
                                   Chip(
                                     label: Text(
                                       project.status,

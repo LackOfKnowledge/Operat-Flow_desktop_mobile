@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:operat_flow/auth/forgot_password_screen.dart';
-import 'package:operat_flow/auth/registration_screen.dart'; // Dodaj import RegistrationScreen
+import 'package:operat_flow/auth/registration_screen.dart';
 import 'package:operat_flow/dashboard_screen.dart';
 import 'package:operat_flow/theme.dart';
 

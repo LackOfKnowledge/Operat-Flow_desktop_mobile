@@ -251,7 +251,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        labelText: 'Hasło (min. 13 znaków)',
+                        labelText: 'Hasło (min. 13 znaków, min. jedna wielka litera, cyfra i znak specjalny)',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(

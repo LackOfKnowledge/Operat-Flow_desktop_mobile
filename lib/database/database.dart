@@ -11,17 +11,34 @@ import 'package:operat_flow/database/tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Projects])
+@DriftDatabase(tables: [Projects, Documents])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
-  Stream<List<Project>> watchAllProjects() =>
-      (select(projects)..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
-          .watch();
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (m) async {
+        await m.createAll();
+      },
+      onUpgrade: (m, from, to) async {
+        // TODO: W wersji produkcyjnej zastąpić to logiką 'ALTER TABLE'.
+        for (final table in allTables) {
+          await m.deleteTable(table.actualTableName);
+        }
+        await m.createAll();
+      },
+    );
+  }
 
+  // --- Metody Projects ---
+  Stream<List<Project>> watchAllProjects() => (select(projects)
+    ..orderBy(
+        [(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
+      .watch();
 
   Future<int> insertProject(ProjectsCompanion project) =>
       into(projects).insert(project);
@@ -38,7 +55,16 @@ class AppDatabase extends _$AppDatabase {
   Future<Project?> getProjectByKerg(String kerg) =>
       (select(projects)..where((t) => t.kerg.equals(kerg))).getSingleOrNull();
 
-// TODO: Dodać metody dla innych tabel i bardziej złożone zapytania
+  // --- Metody Documents ---
+  Stream<List<Document>> watchDocumentsForProject(int projectId) {
+    return (select(documents)
+      ..where((t) => t.projectId.equals(projectId))
+      ..orderBy([(t) => OrderingTerm(expression: t.sortOrder)]))
+        .watch();
+  }
+
+  Future<int> insertDocument(DocumentsCompanion document) =>
+      into(documents).insert(document);
 }
 
 LazyDatabase _openConnection() {
@@ -52,18 +78,24 @@ LazyDatabase _openConnection() {
       sqlite3.tempDirectory = cachebase;
     }
 
-
     return NativeDatabase.createInBackground(file);
   });
 }
 
+// --- Providery ---
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
-  // ref.onDispose(() => db.close()); // Opcjonalny cleanup
+  ref.onDispose(() => db.close());
   return db;
 });
 
 final projectsStreamProvider = StreamProvider<List<Project>>((ref) {
   final database = ref.watch(databaseProvider);
   return database.watchAllProjects();
+});
+
+final documentsForProjectProvider =
+StreamProvider.family<List<Document>, int>((ref, projectId) {
+  final database = ref.watch(databaseProvider);
+  return database.watchDocumentsForProject(projectId);
 });
