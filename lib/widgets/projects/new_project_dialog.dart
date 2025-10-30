@@ -149,7 +149,7 @@ class _NewProjectDialogState extends ConsumerState<NewProjectDialog> {
                         const InputDecoration(labelText: 'Województwo'),
                         items:
                         _buildDropdownItems(FormConstants.voivodeships),
-                        menuMaxHeight: 250.0, // POPRAWKA: Ogranicz wysokość menu
+                        menuMaxHeight: 250.0,
                         onChanged: (value) {
                           setState(() {
                             _selectedVoivodeship = value;
