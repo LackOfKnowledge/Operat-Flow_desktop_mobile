@@ -6,6 +6,7 @@ import 'package:operat_flow/providers/dashboard_providers.dart';
 import 'package:operat_flow/theme.dart';
 import 'package:operat_flow/widgets/projects/new_project_dialog.dart';
 
+/// Kolumna wyświetlająca listę projektów z bazy danych
 class ProjectListColumn extends ConsumerWidget {
   const ProjectListColumn({super.key});
 
@@ -206,27 +207,33 @@ class ProjectListColumn extends ConsumerWidget {
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  Text(project.workType,
-                                      style: textTheme.bodySmall
-                                          ?.copyWith(color: tertiaryText)),
+                                  Expanded(
+                                    child: Text(
+                                      project.workType,
+                                      style: textTheme.bodySmall?.copyWith(color: tertiaryText),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: false,
+                                    ),
+                                  ),
                                   if (project.locationCommune != null &&
                                       project.locationCommune!.isNotEmpty) ...[
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 4.0),
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                       child: Text('•',
-                                          style: textTheme.bodySmall
-                                              ?.copyWith(color: borderColor)),
+                                          style: textTheme.bodySmall?.copyWith(color: borderColor)),
                                     ),
-                                    Flexible(
+                                    Expanded(
                                       child: Text(
                                         project.locationCommune!,
-                                        style: textTheme.bodySmall
-                                            ?.copyWith(color: tertiaryText),
+                                        style: textTheme.bodySmall?.copyWith(color: tertiaryText),
+                                        maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
+                                        softWrap: false,
+                                        textAlign: TextAlign.right,
                                       ),
                                     ),
-                                  ]
+                                  ],
                                 ],
                               ),
                             ],

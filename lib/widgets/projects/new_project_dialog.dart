@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' as d;
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart' show WidgetStatePropertyAll;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:operat_flow/database/database.dart';
 import 'package:operat_flow/theme.dart';
@@ -58,7 +59,7 @@ class _NewProjectDialogState extends ConsumerState<NewProjectDialog> {
           Navigator.of(context).pop();
         }
       } catch (e) {
-        // TODO: Obsłużyć błąd (np. unikalny KERG) i pokazać go użytkownikowi
+        // ignore: avoid_print
         print('Błąd zapisu projektu: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -84,13 +85,55 @@ class _NewProjectDialogState extends ConsumerState<NewProjectDialog> {
     return null;
   }
 
-  List<DropdownMenuItem<String>> _buildDropdownItems(List<String> items) {
-    return items
-        .map((item) => DropdownMenuItem(
-      value: item,
-      child: Text(item),
-    ))
-        .toList();
+
+  List<DropdownMenuEntry<String>> _entries(List<String> items) {
+    return items.map((e) => DropdownMenuEntry<String>(value: e, label: e)).toList();
+  }
+
+  Widget _dropdownField({
+    required String label,
+    required String? value,
+    required List<String> options,
+    required ValueChanged<String?> onSelected,
+    required String? Function(String?)? validator,
+    double menuMaxHeight = 300,
+  }) {
+    return FormField<String>(
+      validator: validator,
+      builder: (state) {
+        final errorStyle = Theme.of(context)
+            .textTheme
+            .bodySmall
+            ?.copyWith(color: Theme.of(context).colorScheme.error);
+
+        const double dialogMaxWidth = 600;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownMenu<String>(
+              initialSelection: value,
+              label: Text(label),
+              dropdownMenuEntries: _entries(options),
+              onSelected: (v) {
+                onSelected(v);
+                state.didChange(v);
+              },
+              menuHeight: menuMaxHeight,
+              // ↓↓↓ zastąpione na WidgetStatePropertyAll
+              menuStyle: const MenuStyle(
+                maximumSize: WidgetStatePropertyAll(Size(dialogMaxWidth, double.infinity)),
+              ),
+              textStyle: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (state.hasError) ...[
+              const SizedBox(height: 6),
+              Text(state.errorText!, style: errorStyle),
+            ],
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -98,8 +141,7 @@ class _NewProjectDialogState extends ConsumerState<NewProjectDialog> {
     return AlertDialog(
       title: const Text('Utwórz Nowy Projekt'),
       content: ConstrainedBox(
-        constraints:
-        const BoxConstraints(maxWidth: 600, minWidth: 400),
+        constraints: const BoxConstraints(maxWidth: 600, minWidth: 400),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -107,56 +149,46 @@ class _NewProjectDialogState extends ConsumerState<NewProjectDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Dane Podstawowe',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text('Dane Podstawowe', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
+
                 TextFormField(
                   controller: _kergController,
                   decoration: const InputDecoration(labelText: 'KERG'),
                   validator: (value) => _validateNotEmpty(value, 'KERG'),
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
+
+                _dropdownField(
+                  label: 'Rodzaj Pracy',
                   value: _selectedWorkType,
-                  decoration: const InputDecoration(labelText: 'Rodzaj Pracy'),
-                  items: _buildDropdownItems(FormConstants.workTypes),
-                  menuMaxHeight: 250.0,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedWorkType = value;
-                    });
-                  },
-                  validator: (value) =>
-                      _validateDropdown(value, 'Rodzaj Pracy'),
+                  options: FormConstants.workTypes,
+                  onSelected: (v) => setState(() => _selectedWorkType = v),
+                  validator: (v) => _validateDropdown(v, 'Rodzaj Pracy'),
                 ),
+
                 const SizedBox(height: 16),
+
                 TextFormField(
                   controller: _clientNameController,
                   decoration: const InputDecoration(labelText: 'Klient'),
                   validator: (value) => _validateNotEmpty(value, 'Klient'),
                 ),
+
                 const Divider(height: 32),
 
-                Text('Lokalizacja',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text('Lokalizacja', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
+
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: _dropdownField(
+                        label: 'Województwo',
                         value: _selectedVoivodeship,
-                        decoration:
-                        const InputDecoration(labelText: 'Województwo'),
-                        items:
-                        _buildDropdownItems(FormConstants.voivodeships),
-                        menuMaxHeight: 250.0,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedVoivodeship = value;
-                          });
-                        },
-                        validator: (value) =>
-                            _validateDropdown(value, 'Województwo'),
+                        options: FormConstants.voivodeships,
+                        onSelected: (v) => setState(() => _selectedVoivodeship = v),
+                        validator: (v) => _validateDropdown(v, 'Województwo'),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -164,75 +196,58 @@ class _NewProjectDialogState extends ConsumerState<NewProjectDialog> {
                       child: TextFormField(
                         controller: _communeController,
                         decoration: const InputDecoration(labelText: 'Gmina'),
-                        validator: (value) =>
-                            _validateNotEmpty(value, 'Gmina'),
+                        validator: (value) => _validateNotEmpty(value, 'Gmina'),
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
+
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
                         controller: _precinctController,
                         decoration: const InputDecoration(labelText: 'Obręb'),
-                        validator: (value) =>
-                            _validateNotEmpty(value, 'Obręb'),
+                        validator: (value) => _validateNotEmpty(value, 'Obręb'),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
                         controller: _plotNumbersController,
-                        decoration:
-                        const InputDecoration(labelText: 'Numery Działek'),
-                        validator: (value) =>
-                            _validateNotEmpty(value, 'Numery Działek'),
+                        decoration: const InputDecoration(labelText: 'Numery Działek'),
+                        validator: (value) => _validateNotEmpty(value, 'Numery Działek'),
                       ),
                     ),
                   ],
                 ),
+
                 const Divider(height: 32),
 
-                Text('Ustawienia Techniczne',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text('Ustawienia Techniczne', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
+
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: _dropdownField(
+                        label: 'Układ Współrzędnych',
                         value: _selectedCoordSystem,
-                        decoration: const InputDecoration(
-                            labelText: 'Układ Współrzędnych'),
-                        items: _buildDropdownItems(
-                            FormConstants.coordinateSystems),
-                        menuMaxHeight: 250.0,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCoordSystem = value;
-                          });
-                        },
-                        validator: (value) =>
-                            _validateDropdown(value, 'Układ Współrzędnych'),
+                        options: FormConstants.coordinateSystems,
+                        onSelected: (v) => setState(() => _selectedCoordSystem = v),
+                        validator: (v) => _validateDropdown(v, 'Układ Współrzędnych'),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: _dropdownField(
+                        label: 'Układ Wysokościowy',
                         value: _selectedHeightSystem,
-                        decoration: const InputDecoration(
-                            labelText: 'Układ Wysokościowy'),
-                        items: _buildDropdownItems(
-                            FormConstants.heightSystems),
-                        menuMaxHeight: 250.0,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedHeightSystem = value;
-                          });
-                        },
-                        validator: (value) =>
-                            _validateDropdown(value, 'Układ Wysokościowy'),
+                        options: FormConstants.heightSystems,
+                        onSelected: (v) => setState(() => _selectedHeightSystem = v),
+                        validator: (v) => _validateDropdown(v, 'Układ Wysokościowy'),
                       ),
                     ),
                   ],

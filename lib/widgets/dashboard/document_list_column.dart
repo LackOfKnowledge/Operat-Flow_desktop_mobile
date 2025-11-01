@@ -4,26 +4,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:operat_flow/providers/dashboard_providers.dart';
 import 'package:operat_flow/theme.dart';
 import 'package:operat_flow/database/database.dart';
+import 'package:operat_flow/widgets/documents/import_txt_dialog.dart'; // Import dialogu
 
+/// Kolumna wyświetlająca listę dokumentów dla wybranego projektu
 class DocumentListColumn extends ConsumerWidget {
   const DocumentListColumn({super.key});
 
+  /// Logika wyboru z menu "Dodaj"
   void _onDocumentMenuSelected(
-      String result, WidgetRef ref, int projectId) async {
-    // TODO: Logika dodawania dokumentów
-    if (result == 'new_report') {
-      final db = ref.read(databaseProvider);
+      BuildContext context, WidgetRef ref, int projectId, String result) async {
+    // Odczytaj 'context' i 'ref' przed operacjami async
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final db = ref.read(databaseProvider);
 
-      final currentDocs =
-      await ref.read(documentsForProjectProvider(projectId).future);
+    switch (result) {
+      case 'import_txt':
+        showDialog(
+          context: context,
+          builder: (context) => ProviderScope(
+            overrides: [
+              selectedFileProvider.overrideWith((ref) => null)
+            ],
+            child: ImportTxtDialog(projectId: projectId),
+          ),
+        );
+        break;
+      case 'new_report':
+        final currentDocs =
+        await ref.read(documentsForProjectProvider(projectId).future);
 
-      final newDoc = DocumentsCompanion(
-        projectId: d.Value(projectId),
-        name: d.Value('Nowe Sprawozdanie.docx'),
-        type: d.Value('report'),
-        sortOrder: d.Value(currentDocs.length + 1),
-      );
-      await db.insertDocument(newDoc);
+        final newDoc = DocumentsCompanion(
+          projectId: d.Value(projectId),
+          name: d.Value('Nowe Sprawozdanie.docx'),
+          type: d.Value('report'),
+          sortOrder: d.Value(currentDocs.length + 1),
+        );
+        await db.insertDocument(newDoc);
+
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Dodano nowe sprawozdanie'),
+            backgroundColor: successColor,
+          ),
+        );
+        break;
+      case 'upload_pdf':
+      // TODO: Logika wgrania PDF/obrazka
+        print('Wybrano załącz plik');
+        break;
     }
   }
 
@@ -68,7 +96,7 @@ class DocumentListColumn extends ConsumerWidget {
                   tooltip: "Dodaj dokument",
                   offset: const Offset(0, 40),
                   onSelected: (result) =>
-                      _onDocumentMenuSelected(result, ref, selectedProjectId),
+                      _onDocumentMenuSelected(context, ref, selectedProjectId, result),
                   itemBuilder: (BuildContext context) =>
                   <PopupMenuEntry<String>>[
                     const PopupMenuItem<String>(
