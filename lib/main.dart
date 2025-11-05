@@ -3,7 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:operat_flow/theme.dart';
 import 'package:operat_flow/auth/login_screen.dart';
 
-void main() {
+import 'dart:async';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
+final InAppLocalhostServer localhostServer = InAppLocalhostServer(
+  port: 8080,
+  documentRoot: 'assets',
+);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // --- ZASTOSOWANA SUGESTIA (Try-Catch + Delay) ---
+  try {
+    await localhostServer.start();
+    debugPrint('InAppLocalhostServer uruchomiony na http://127.0.0.1:8080');
+    // Dajemy serwerowi chwilę na "wstanie"
+    await Future.delayed(const Duration(milliseconds: 150));
+  } catch (e) {
+    debugPrint('Nie udało się uruchomić InAppLocalhostServer: $e');
+  }
+  // --------------------------------------------------
+  
   runApp(const ProviderScope(child: MyApp()));
 }
 
