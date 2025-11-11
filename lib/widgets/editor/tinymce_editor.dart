@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,31 +20,33 @@ class TinymceEditor extends ConsumerStatefulWidget {
 class TinymceEditorState extends ConsumerState<TinymceEditor> {
   InAppWebViewController? _webViewController;
   bool _isEditorReady = false;
+  String? _html;
 
-  final WebUri _editorUrl =
-  WebUri("http://127.0.0.1:8080/tinymce/editor.html");
-
-  String _safeJavaScriptString(String? text) {
-    if (text == null) return '';
-    return text
-        .replaceAll(r'\', r'\\')
-        .replaceAll(r"'", r"\'")
-        .replaceAll(r'"', r'\"')
-        .replaceAll("\n", r"\n")
-        .replaceAll("\r", r"\r");
+  @override
+  void initState() {
+    super.initState();
+    rootBundle.loadString('assets/tinymce/editor.html').then((s) {
+      if (mounted) setState(() => _html = s);
+    });
   }
+
+  String _escape(String? s) => (s ?? '')
+      .replaceAll(r'\', r'\\')
+      .replaceAll("'", r"\'")
+      .replaceAll('"', r'\"')
+      .replaceAll("\n", r"\n")
+      .replaceAll("\r", r"\r");
 
   void _setContent(String? content) {
     if (_webViewController != null && _isEditorReady) {
-      final safeContent = _safeJavaScriptString(content);
       _webViewController!.evaluateJavascript(
-        source: "window.setContent('$safeContent');",
+        source: "window.setContent('${_escape(content)}');",
       );
     }
   }
 
   Future<String> getContent() async {
-    if (_webViewController == null) return '';
+    if (_webViewController == null || !_isEditorReady) return '';
     final result = await _webViewController!.evaluateJavascript(
       source: "window.getContent();",
     );
@@ -53,41 +56,24 @@ class TinymceEditorState extends ConsumerState<TinymceEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return InAppWebView(
-      initialUrlRequest: URLRequest(url: _editorUrl),
+    if (_html == null) {
+      return const Center(
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
 
+    return InAppWebView(
+      initialData: InAppWebViewInitialData(
+        data: _html!,
+        baseUrl: WebUri('asset://flutter_assets/assets/tinymce/'),
+      ),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
-
-        useShouldOverrideUrlLoading: false,
-
-        builtInZoomControls: false,
-        supportZoom: false,
-        verticalScrollBarEnabled: false,
-        horizontalScrollBarEnabled: false,
+        javaScriptCanOpenWindowsAutomatically: true,
+        isInspectable: true,
         disableVerticalScroll: true,
         disableHorizontalScroll: true,
-        javaScriptCanOpenWindowsAutomatically: true,
-
-        allowFileAccess: true,
-        allowUniversalAccessFromFileURLs: true,
-
-        isInspectable: true,
       ),
-
-      onLoadStart: (controller, url) {
-        debugPrint("LOAD_START: $url");
-      },
-
-      onTitleChanged: (controller, title) {
-        debugPrint("TITLE: $title");
-      },
-
-      onConsoleMessage: (controller, consoleMessage) {
-        debugPrint(
-            "JS: ${consoleMessage.message} [${consoleMessage.messageLevel}]");
-      },
-
       onWebViewCreated: (controller) async {
         _webViewController = controller;
 
@@ -109,20 +95,20 @@ class TinymceEditorState extends ConsumerState<TinymceEditor> {
             return null;
           },
         );
+      },
 
-        Future.delayed(const Duration(milliseconds: 60), () async {
-          final current = await _webViewController?.getUrl();
-          if (current == null || current.toString() == 'about:blank') {
-            debugPrint("Retrying load to $_editorUrl (was about:blank)");
-            await _webViewController
-                ?.loadUrl(urlRequest: URLRequest(url: _editorUrl));
-          }
-        });
+      onLoadStart: (controller, url) {
+        debugPrint("LOAD_START: $url");
+      },
+      onTitleChanged: (controller, title) {
+        debugPrint("TITLE: $title");
+      },
+      onConsoleMessage: (controller, consoleMessage) {
+        debugPrint("JS: ${consoleMessage.message} [${consoleMessage.messageLevel}]");
       },
 
       onLoadStop: (controller, url) async {
         debugPrint("LOAD_STOP: $url");
-        _setContent(widget.initialValue);
       },
 
       onLoadError: (controller, url, code, message) {
@@ -130,8 +116,7 @@ class TinymceEditorState extends ConsumerState<TinymceEditor> {
       },
 
       onLoadHttpError: (controller, url, statusCode, description) {
-        debugPrint(
-            "WEBVIEW HTTP: $description (status: $statusCode, url: $url)");
+        debugPrint("WEBVIEW HTTP: $description (status: $statusCode, url: $url)");
       },
     );
   }

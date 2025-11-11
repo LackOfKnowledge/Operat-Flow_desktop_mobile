@@ -1,21 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import 'package:operat_flow/theme.dart';
 import 'package:operat_flow/widgets/editor/tinymce_editor.dart';
 
-final InAppLocalhostServer localhostServer = InAppLocalhostServer(
-  port: 8080,
-  documentRoot: 'assets',
-);
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await localhostServer.start();
-
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -41,17 +31,16 @@ class TinymceDemoScreen extends StatefulWidget {
 }
 
 class _TinymceDemoScreenState extends State<TinymceDemoScreen> {
+  final _editorKey = GlobalKey<TinymceEditorState>();
   String _latest = '';
   final _initial = "<p><strong>Hello, TinyMCE!</strong> 📝</p>";
-
-  final _editorKey = GlobalKey<TinymceEditorState>();
 
   Future<void> _getContent() async {
     final state = _editorKey.currentState;
     if (state == null) return;
     final html = await state.getContent();
-    setState(() => _latest = html);
     if (!mounted) return;
+    setState(() => _latest = html);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Pobrano treść (${html.length} znaków)")),
     );
@@ -68,6 +57,7 @@ class _TinymceDemoScreenState extends State<TinymceDemoScreen> {
               key: _editorKey,
               initialValue: _initial,
               onContentChanged: (html) {
+                // np. autosave
               },
             ),
           ),

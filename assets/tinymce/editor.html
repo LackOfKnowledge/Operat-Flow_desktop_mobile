@@ -3,49 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <link rel="icon" href="data:,">
   <title>Edytor</title>
-  <script src="./tinymce.min.js" referrerpolicy="origin"></script>
+
+  <script src="tinymce.min.js" referrerpolicy="origin"></script>
+
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
-    #editor { height: 100%; width: 100%; }
-    .tox-tinymce {
-      height: 100% !important;
-      width: 100% !important;
-      border: none !important;
-    }
+    html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden; }
+    #editor { height:100%; width:100%; }
+    .tox-tinymce { height:100% !important; width:100% !important; border:none !important; }
   </style>
 </head>
 <body>
 <textarea id="editor"></textarea>
 
 <script>
+  const ASSET_BASE = "asset://flutter_assets/assets/tinymce";
+
   tinymce.init({
     selector: "#editor",
-    plugins: "lists link image table code help wordcount",
+
+
+    language_url: ASSET_BASE + "/langs/pl.js",
+    language: "pl",
+
+    plugins: "advlist lists link image table code help wordcount",
     toolbar:
-      "undo redo | formatselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code",
+      "undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | " +
+      "bullist numlist outdent indent | table | link image | removeformat | code | help",
     menubar: false,
     resize: false,
     branding: false,
+    promotion: false,
     height: "100%",
     width: "100%",
 
-    setup: function (editor) {
-      window.getContent = function () {
-        return editor.getContent();
-      };
+    base_url: ASSET_BASE,
+    suffix: ".min",
+    skin_url: ASSET_BASE + "/skins/ui/oxide",
+    content_css: ASSET_BASE + "/skins/content/default/content.css",
+    icons: "default",
 
-      window.setContent = function (content) {
-        editor.setContent(content || "");
-      };
+    setup(editor) {
+      window.getContent = () => editor.getContent();
+      window.setContent = (c) => editor.setContent(c || "");
 
-      editor.on("init", function () {
+      editor.on("init", () => {
         if (window.flutter_inappwebview) {
           window.flutter_inappwebview.callHandler("onEditorReady");
         }
@@ -53,13 +56,9 @@
 
       const notify = () => {
         if (window.flutter_inappwebview) {
-          window.flutter_inappwebview.callHandler(
-            "onContentChanged",
-            editor.getContent()
-          );
+          window.flutter_inappwebview.callHandler("onContentChanged", editor.getContent());
         }
       };
-
       editor.on("keyup change input undo redo", notify);
     },
   });
