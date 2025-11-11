@@ -1,67 +1,68 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Edytor</title>
-    <script src="tinymce.min.js" referrerpolicy="origin"></script>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-        }
-        .tox-tinymce {
-            height: 100% !important;
-            width: 100% !important;
-            border: none !important;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Edytor</title>
+  <script src="./tinymce.min.js" referrerpolicy="origin"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    #editor { height: 100%; width: 100%; }
+    .tox-tinymce {
+      height: 100% !important;
+      width: 100% !important;
+      border: none !important;
+    }
+  </style>
 </head>
 <body>
-
 <textarea id="editor"></textarea>
 
 <script>
-    tinymce.init({
-        selector: '#editor',
-        plugins: 'lists link image table code help wordcount',
-        toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code',
-        menubar: false,
+  tinymce.init({
+    selector: "#editor",
+    plugins: "lists link image table code help wordcount",
+    toolbar:
+      "undo redo | formatselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code",
+    menubar: false,
+    resize: false,
+    branding: false,
+    height: "100%",
+    width: "100%",
 
-        // inline: true,
-        resize: false,
-        branding: false,
+    setup: function (editor) {
+      window.getContent = function () {
+        return editor.getContent();
+      };
 
-        height: "100%",
-        width: "100%",
+      window.setContent = function (content) {
+        editor.setContent(content || "");
+      };
 
-        setup: function(editor) {
-            // Funkcje do komunikacji z Flutterem
-            window.getContent = function() {
-                return editor.getContent();
-            };
-
-            window.setContent = function(content) {
-                editor.setContent(content);
-            };
-
-            editor.on('init', function() {
-                if (window.flutter_inappwebview) {
-                    window.flutter_inappwebview.callHandler('onEditorReady');
-                }
-            });
-
-            editor.on('keyup change', function() {
-                if (window.flutter_inappwebview) {
-                    window.flutter_inappwebview.callHandler('onContentChanged', editor.getContent());
-                }
-            });
+      editor.on("init", function () {
+        if (window.flutter_inappwebview) {
+          window.flutter_inappwebview.callHandler("onEditorReady");
         }
-    });
-</script>
+      });
 
+      const notify = () => {
+        if (window.flutter_inappwebview) {
+          window.flutter_inappwebview.callHandler(
+            "onContentChanged",
+            editor.getContent()
+          );
+        }
+      };
+
+      editor.on("keyup change input undo redo", notify);
+    },
+  });
+</script>
 </body>
 </html>

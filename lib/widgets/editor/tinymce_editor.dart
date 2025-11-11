@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final editorUrl = WebUri("http://127.0.0.1:8080/tinymce/editor.html");
-
 class TinymceEditor extends ConsumerStatefulWidget {
   final String? initialValue;
   final Function(String content) onContentChanged;
@@ -15,13 +13,15 @@ class TinymceEditor extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<TinymceEditor> createState() => _TinymceEditorState();
+  TinymceEditorState createState() => TinymceEditorState();
 }
 
-class _TinymceEditorState extends ConsumerState<TinymceEditor> {
+class TinymceEditorState extends ConsumerState<TinymceEditor> {
   InAppWebViewController? _webViewController;
   bool _isEditorReady = false;
-  bool _didLoadEditor = false; 
+
+  final WebUri _editorUrl =
+  WebUri("http://127.0.0.1:8080/tinymce/editor.html");
 
   String _safeJavaScriptString(String? text) {
     if (text == null) return '';
@@ -29,26 +29,38 @@ class _TinymceEditorState extends ConsumerState<TinymceEditor> {
         .replaceAll(r'\', r'\\')
         .replaceAll(r"'", r"\'")
         .replaceAll(r'"', r'\"')
-        .replaceAll(r"\n", r"\n")
-        .replaceAll(r"\r", r"\r");
+        .replaceAll("\n", r"\n")
+        .replaceAll("\r", r"\r");
   }
 
   void _setContent(String? content) {
     if (_webViewController != null && _isEditorReady) {
       final safeContent = _safeJavaScriptString(content);
       _webViewController!.evaluateJavascript(
-          source: "window.setContent('$safeContent');"
+        source: "window.setContent('$safeContent');",
       );
     }
+  }
+
+  Future<String> getContent() async {
+    if (_webViewController == null) return '';
+    final result = await _webViewController!.evaluateJavascript(
+      source: "window.getContent();",
+    );
+    if (result is String) return result;
+    return result?.toString() ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
     return InAppWebView(
-      
+      initialUrlRequest: URLRequest(url: _editorUrl),
+
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
-        useShouldOverrideUrlLoading: true,
+
+        useShouldOverrideUrlLoading: false,
+
         builtInZoomControls: false,
         supportZoom: false,
         verticalScrollBarEnabled: false,
@@ -56,59 +68,70 @@ class _TinymceEditorState extends ConsumerState<TinymceEditor> {
         disableVerticalScroll: true,
         disableHorizontalScroll: true,
         javaScriptCanOpenWindowsAutomatically: true,
-        allowFileAccess: true, 
+
+        allowFileAccess: true,
         allowUniversalAccessFromFileURLs: true,
-        clearCache: false,
-        mediaPlaybackRequiresUserGesture: false,
-        allowsInlineMediaPlayback: true,
+
+        isInspectable: true,
       ),
 
-      onConsoleMessage: (controller, consoleMessage) {
-        debugPrint("JS: ${consoleMessage.message} [${consoleMessage.messageLevel}]");
+      onLoadStart: (controller, url) {
+        debugPrint("LOAD_START: $url");
       },
-      
-      onWebViewCreated: (controller) {
+
+      onTitleChanged: (controller, title) {
+        debugPrint("TITLE: $title");
+      },
+
+      onConsoleMessage: (controller, consoleMessage) {
+        debugPrint(
+            "JS: ${consoleMessage.message} [${consoleMessage.messageLevel}]");
+      },
+
+      onWebViewCreated: (controller) async {
         _webViewController = controller;
 
         controller.addJavaScriptHandler(
           handlerName: 'onEditorReady',
           callback: (args) {
-            setState(() {
-              _isEditorReady = true;
-            });
+            setState(() => _isEditorReady = true);
             _setContent(widget.initialValue);
+            return null;
           },
         );
 
         controller.addJavaScriptHandler(
           handlerName: 'onContentChanged',
           callback: (args) {
-            widget.onContentChanged(args[0] as String);
+            if (args.isNotEmpty && args[0] is String) {
+              widget.onContentChanged(args[0] as String);
+            }
+            return null;
           },
         );
 
-        if (!_didLoadEditor) {
-          _didLoadEditor = true;
-          debugPrint('Ładuję URL: $editorUrl');
-          _webViewController!.loadUrl(urlRequest: URLRequest(url: editorUrl));
-        }
+        Future.delayed(const Duration(milliseconds: 60), () async {
+          final current = await _webViewController?.getUrl();
+          if (current == null || current.toString() == 'about:blank') {
+            debugPrint("Retrying load to $_editorUrl (was about:blank)");
+            await _webViewController
+                ?.loadUrl(urlRequest: URLRequest(url: _editorUrl));
+          }
+        });
       },
+
       onLoadStop: (controller, url) async {
-        debugPrint("onLoadStop: $url");
-        if (url == editorUrl) {
-          _setContent(widget.initialValue);
-        }
+        debugPrint("LOAD_STOP: $url");
+        _setContent(widget.initialValue);
       },
 
       onLoadError: (controller, url, code, message) {
-        debugPrint("BŁĄD ŁADOWANIA WEBVIEW: $message (Kod: $code, URL: $url)");
-      },
-      onLoadHttpError: (controller, url, statusCode, description) {
-        debugPrint("BŁĄD HTTP WEBVIEW: $description (Kod: $statusCode, URL: $url)");
+        debugPrint("WEBVIEW ERROR: $message (code: $code, url: $url)");
       },
 
-      onLoadResource: (controller, resource) {
-        debugPrint('RES: Ładowanie zasobu ${resource.url}');
+      onLoadHttpError: (controller, url, statusCode, description) {
+        debugPrint(
+            "WEBVIEW HTTP: $description (status: $statusCode, url: $url)");
       },
     );
   }
